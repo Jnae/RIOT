@@ -29,7 +29,7 @@ extern "C"
 #define BLINK_HZ        (4)
 #endif
 
-#define SYNC_WORD       (0b11111111)
+#define SYNC_WORD       (0b01111111)
 
 #define TOGGLE_DELAY    ((US_PER_SEC / BLINK_HZ) / 2)
 
