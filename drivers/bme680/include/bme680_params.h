@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2019 Mesotic SAS
- *               2020 Gunar Schorcht
+ * Copyright (C) 2020 OVGU Magdeburg
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -8,14 +7,13 @@
  */
 
 /**
- * @ingroup     drivers_bme680
+ * @ingroup     drivers_BME680
  *
  * @{
  * @file
- * @brief       Default configuration for BME680 device driver
+ * @brief       Default configuration
  *
- * @author      Dylan Laduranty <dylan.laduranty@mesotic.com>
- * @author      Gunar Schorcht <gunar@schorcht.net>
+ * @author      Jana Eisoldt <jana.eisoldt@ovgu.de>
  */
 
 #ifndef BME680_PARAMS_H
@@ -23,6 +21,7 @@
 
 #include "board.h"
 #include "bme680.h"
+#include "bme680_internals.h"
 #include "saul_reg.h"
 
 #ifdef __cplusplus
@@ -36,7 +35,7 @@ extern "C" {
 
 #if MODULE_PERIPH_I2C || DOXYGEN
 #ifndef BME680_PARAM_I2C_DEV
-#define BME680_PARAM_I2C_DEV        (I2C_DEV(0))
+#define BME680_PARAM_I2C_DEV        (I2C_DEV(1))
 #endif
 
 #ifndef BME680_PARAM_I2C_ADDR
@@ -44,66 +43,54 @@ extern "C" {
 #endif
 #endif /* MODULE_PERIPH_I2C */
 
-#if MODULE_PERIPH_SPI || DOXYGEN
+//#if MODULE_PERIPH_SPI || DOXYGEN
 #ifndef BME680_PARAM_SPI_DEV
 #define BME680_PARAM_SPI_DEV        (SPI_DEV(0))
 #endif
 
 #ifndef BME680_PARAM_SPI_NSS_PIN
-#define BME680_PARAM_SPI_NSS_PIN    GPIO_PIN(0, 5)
+#define BME680_PARAM_SPI_NSS_PIN    (GPIO_PIN(0,4))
 #endif
-#endif /* MODULE_PERIPH_SPI */
+//#endif /* MODULE_PERIPH_SPI */
 
 /**
  * @brief   Defaults I2C parameters if none provided
  */
-#define BME680_PARAMS_I2C                               \
-{                                                       \
-        .ifsel              = BME680_I2C_INTF,          \
-        .temp_os            = BME680_OS_8X,             \
-        .hum_os             = BME680_OS_2X,             \
-        .pres_os            = BME680_OS_4X,             \
-        .filter             = BME680_FILTER_SIZE_3,     \
-        .gas_measure        = BME680_ENABLE_GAS_MEAS,   \
-        .heater_dur         = 320,                      \
-        .heater_temp        = 150,                      \
-        .settings           = BME680_OST_SEL |          \
-                              BME680_OSP_SEL |          \
-                              BME680_OSH_SEL |          \
-                              BME680_FILTER_SEL |       \
-                              BME680_GAS_SENSOR_SEL,    \
-        .intf.i2c.dev   = BME680_PARAM_I2C_DEV,         \
-        .intf.i2c.addr  = BME680_PARAM_I2C_ADDR,        \
-}
 
-/**
- * @brief   Defaults SPI parameters if none provided
- */
-#define BME680_PARAMS_SPI                               \
-{                                                       \
-        .ifsel              = BME680_SPI_INTF,          \
-        .temp_os            = BME680_OS_8X,             \
-        .hum_os             = BME680_OS_2X,             \
-        .pres_os            = BME680_OS_4X,             \
-        .filter             = BME680_FILTER_SIZE_3,     \
-        .gas_measure        = BME680_ENABLE_GAS_MEAS,   \
-        .heater_dur         = 320,                      \
-        .heater_temp        = 150,                      \
-        .settings           = BME680_OST_SEL |          \
-                              BME680_OSP_SEL |          \
-                              BME680_OSH_SEL |          \
-                              BME680_FILTER_SEL |       \
-                              BME680_GAS_SENSOR_SEL,    \
-        .intf.spi.dev       = BME680_PARAM_SPI_DEV,     \
-        .intf.spi.nss_pin   = BME680_PARAM_SPI_NSS_PIN, \
-}
+#define BME680_PARAMS_I2C                                                       \
+{                                                                               \
+                                .ambient_temp = 25,                             \
+                                .temp_os = OVERSAMPLING_8,                      \
+                                .press_os = OVERSAMPLING_16,                    \
+                                .hum_os = OVERSAMPLING_2,                       \
+                                .meas_gas = true,                               \
+                                .gas_heating_time = 320,                        \
+                                .gas_heating_temp = 150,                        \
+                                .filter = FILTER_COEFFICIENT_3,                 \
+                                .intf.i2c.dev    = BME680_PARAM_I2C_DEV,        \
+                                .intf.i2c.addr   = BME680_PARAM_I2C_ADDR,       \
+                                }
+
+#define BME680_PARAMS_SPI                                                       \
+{                                                                               \
+                                .ambient_temp = 25,                             \
+                                .temp_os = OVERSAMPLING_8,                      \
+                                .press_os = OVERSAMPLING_8,                    \
+                                .hum_os = OVERSAMPLING_2,                       \
+                                .meas_gas = true,                               \
+                                .gas_heating_time = 320,                        \
+                                .gas_heating_temp = 100,                        \
+                                .filter = FILTER_COEFFICIENT_3,                 \
+                                .intf.spi.dev    = BME680_PARAM_SPI_DEV,        \
+                                .intf.spi.nss_pin   = BME680_PARAM_SPI_NSS_PIN, \
+                                }
 
 /**
  * @brief   Default SAUL meta information
  */
 #ifndef BME680_SAUL_INFO
 #if MODULE_BME680_I2C && MODULE_BME680_SPI
-#define BME680_SAUL_INFO    { .name = "bme680:0" }, \
+#define BME680_SAUL_INFO    { .name = "bme680:0" },                             \
                             { .name = "bme680:1" },
 #else /* MODULE_BME680_I2C && MODULE_BME680_SPI */
 #define BME680_SAUL_INFO    { .name = "bme680" }
@@ -120,7 +107,7 @@ static const bme680_params_t bme680_params[] =
     BME680_PARAMS_I2C,
 #endif
 #if MODULE_BME680_SPI || DOXYGEN
-    BME680_PARAMS_SPI,
+    BME680_PARAMS_SPI
 #endif
 };
 
@@ -136,6 +123,7 @@ static const saul_reg_info_t bme680_saul_info[] =
  * @brief   The number of configured sensors
  */
 #define BME680_NUMOF    ARRAY_SIZE(bme680_params)
+
 
 #ifdef __cplusplus
 }
