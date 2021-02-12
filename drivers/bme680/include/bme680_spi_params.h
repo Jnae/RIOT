@@ -50,24 +50,25 @@ extern "C" {
  * @brief   Defaults SPI parameters if none provided
  */
 
-#define BME680_PARAMS_SPI                                                      \
-{                                                                              \
-        .common_params.ambient_temp               = 25,                        \
-        .common_params.temp_os                    = OVERSAMPLING_8,            \
-        .common_params.press_os                   = OVERSAMPLING_8,            \
-        .common_params.hum_os                     = OVERSAMPLING_2,            \
-        .common_params.meas_gas                   = true,                      \
-        .common_params.gas_heating_time           = 320,                       \
-        .common_params.gas_heating_temp           = 150,                       \
-        .common_params.filter                     = FILTER_COEFFICIENT_3,      \
-        .spi_params.dev                           = BME680_PARAM_SPI_DEV,      \
-        .spi_params.nss_pin                       = BME680_PARAM_SPI_NSS_PIN,  \
+#define BME680_PARAMS_SPI                                                 \
+{                                                                         \
+        .common_params = {                                                \
+            .ambient_temp               = 25,                             \
+            .temp_os                    = BME680_OVERSAMPLING_8,          \
+            .press_os                   = BME680_OVERSAMPLING_8,          \
+            .hum_os                     = BME680_OVERSAMPLING_2,          \
+            .meas_gas                   = true,                           \
+            .gas_heating_time           = 320,                            \
+            .gas_heating_temp           = 150,                            \
+            .filter                     = BME680_FILTER_COEFFICIENT_3,    \
+        },                                                                \
+        .spi_params.dev                 = BME680_PARAM_SPI_DEV,           \
+        .spi_params.nss_pin             = BME680_PARAM_SPI_NSS_PIN,       \
 }
 
 /**
  * @brief   Default SAUL meta information
  */
-
 #ifndef BME680_SPI_SAUL_INFO
 #define BME680_SPI_SAUL_INFO    { .name = "bme680spi" }
 #endif /* BME680_SAUL_INFO */
@@ -90,8 +91,9 @@ static const saul_reg_info_t bme680_spi_saul_info[] =
     BME680_SPI_SAUL_INFO
 };
 
-#define BME680_SPI_NUMOF    ARRAY_SIZE(bme680_spi_params)
-
+#ifndef BME680_COMMON_NUMOF
+#define BME680_COMMON_NUMOF    ARRAY_SIZE(bme680_spi_params)
+#endif
 
 #ifdef __cplusplus
 }

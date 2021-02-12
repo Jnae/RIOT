@@ -50,19 +50,22 @@ extern "C" {
  * @brief   Defaults I2C parameters if none provided
  */
 
-#define BME680_PARAMS_I2C                                                      \
-{                                                                              \
-        .common_params.ambient_temp               = 25,                        \
-        .common_params.temp_os                    = OVERSAMPLING_8,            \
-        .common_params.press_os                   = OVERSAMPLING_4,            \
-        .common_params.hum_os                     = OVERSAMPLING_2,            \
-        .common_params.meas_gas                   = true,                      \
-        .common_params.gas_heating_time           = 320,                       \
-        .common_params.gas_heating_temp           = 150,                       \
-        .common_params.filter                     = FILTER_COEFFICIENT_3,      \
-        .i2c_params.dev                           = BME680_PARAM_I2C_DEV,      \
-        .i2c_params.addr                          = BME680_PARAM_I2C_ADDR,     \
+#define BME680_PARAMS_I2C                                                           \
+{                                                                                   \
+        .common_params = {                                                          \
+            .ambient_temp               = 25,                                       \
+            .temp_os                    = BME680_OVERSAMPLING_8,                    \
+            .press_os                   = BME680_OVERSAMPLING_8,                    \
+            .hum_os                     = BME680_OVERSAMPLING_2,                    \
+            .meas_gas                   = true,                                     \
+            .gas_heating_time           = 320,                                      \
+            .gas_heating_temp           = 150,                                      \
+            .filter                     = BME680_FILTER_COEFFICIENT_3,              \
+        },                                                                          \
+        .i2c_params.dev                 = BME680_PARAM_I2C_DEV,                     \
+        .i2c_params.addr                = BME680_PARAM_I2C_ADDR,                    \
 }
+
 
 /**
  * @brief   Default SAUL meta information
@@ -71,7 +74,6 @@ extern "C" {
 #define BME680_I2C_SAUL_INFO    { .name = "bme680i2c" }
 #endif /* BME680_SAUL_INFO */
 /**@}*/
-
 
 /**
  * @brief   Configure params for BME680
@@ -90,8 +92,8 @@ static const saul_reg_info_t bme680_i2c_saul_info[] =
     BME680_I2C_SAUL_INFO
 };
 
-#ifndef BME680_I2C_NUMOF
-#define BME680_I2C_NUMOF    ARRAY_SIZE(bme680_i2c_params)
+#ifndef BME680_COMMON_NUMOF
+#define BME680_COMMON_NUMOF    ARRAY_SIZE(bme680_i2c_params)
 #endif
 
 #ifdef __cplusplus

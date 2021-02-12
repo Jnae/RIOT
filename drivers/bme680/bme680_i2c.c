@@ -28,11 +28,15 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 #define DEV_ADDR    (dev->i2c_intf.addr)
 #define DEV_I2C     (dev->i2c_intf.dev)
+
+unsigned int bme680_i2c_devs_numof = 0;
+
+bme680_i2c_t *bme680_common_devs_saul[BME680_COMMON_NUMOF] = { };
 
 static int _read_reg(const bme680_i2c_t *dev, uint8_t reg, void *res){
 
@@ -79,8 +83,13 @@ static int _write_reg(const bme680_i2c_t *dev, uint8_t reg, const uint8_t *res){
 int bme680_i2c_init(bme680_i2c_t *dev, const bme680_i2c_params_t *params)
 {
     assert(dev && params);
+    assert(bme680_i2c_devs_numof < BME680_COMMON_NUMOF);
+
     dev->i2c_intf = params->i2c_params;
     dev->common.params = params->common_params;
+
+    bme680_common_devs_saul[bme680_i2c_devs_numof] = dev;
+    //BME680_SENSOR(dev).dev_id = bme680_devs_numof++;
 
     uint8_t reset = BME680_RESET, reset_status, chip_id, os_set, hum_set, filter_set;
     bme680_calib_t calib_data;
@@ -186,8 +195,8 @@ int bme680_i2c_init(bme680_i2c_t *dev, const bme680_i2c_params_t *params)
         /* calculate register values for gas heating temperature and duration */
         uint8_t res_heat_0, heat_duration, set_gas;
 
-        convert_res_heat(&dev->common, &res_heat_0);
-        calc_heater_dur(dev->common.params.gas_heating_time, &heat_duration);
+        res_heat_0 = bme680_common_convert_res_heat(&dev->common);
+        heat_duration = bme680_common_calc_heater_dur(dev->common.params.gas_heating_time);
 
         /* set calculated heating temperature */
         if (_write_reg(dev, BME680_REGISTER_RES_HEAT_0, &res_heat_0) < 0){
@@ -220,9 +229,9 @@ int bme680_i2c_init(bme680_i2c_t *dev, const bme680_i2c_params_t *params)
     return 0;
 }
 
-int bme680_i2c_read(const bme680_i2c_t *dev, bme680_data_t *data)
+int bme680_i2c_read(const bme680_i2c_t *dev, bme680_data_t *dest)
 {
-    assert(dev && data);
+    assert(dev && dest);
     uint8_t new_data, reg_ctrl_meas;
 
     /* read os settings and set forced mode */
@@ -255,37 +264,20 @@ int bme680_i2c_read(const bme680_i2c_t *dev, bme680_data_t *data)
         return -EIO;
     }
 
-    uint32_t temp_adc, press_adc;
-    uint16_t hum_adc;
+    bme680_raw_t raw_adc_values;
 
-    temp_adc = (uint32_t) (((uint32_t) adc_readout.temp_adc_msb << 12) | ((uint32_t) adc_readout.temp_adc_lsb << 4)
-            | ((uint32_t) adc_readout.temp_adc_xlsb >> 4));
+    raw_adc_values.temp_adc = ((uint32_t) adc_readout.temp_adc_msb << 12)
+                            | ((uint32_t) adc_readout.temp_adc_lsb << 4)
+                            | ((uint32_t) adc_readout.temp_adc_xlsb >> 4);
 
-    hum_adc = (uint16_t) (((uint16_t) adc_readout.hum_adc_msb << 8) | (uint16_t) adc_readout.hum_adc_lsb);
+    raw_adc_values.hum_adc = ((uint16_t) adc_readout.hum_adc_msb << 8)
+                            | ((uint16_t) adc_readout.hum_adc_lsb);
 
-    press_adc = (uint32_t) (((uint32_t) adc_readout.press_adc_msb << 12) | ((uint32_t) adc_readout.press_adc_lsb << 4)
-            | ((uint32_t) adc_readout.press_adc_xlsb >> 4));
+    raw_adc_values.press_adc = ((uint32_t) adc_readout.press_adc_msb << 12)
+                            | ((uint32_t) adc_readout.press_adc_lsb << 4)
+                            | ((uint32_t) adc_readout.press_adc_xlsb >> 4);
 
-
-    /* calculate temperature, pressure, humidity */
-    if (calc_temp(&dev->common, &data->temperature, &data->t_fine, temp_adc) != 0){
-        DEBUG("[bme680] error calculating temperature\n");
-        return -ERANGE;;
-    }
-
-    if (calc_press(&dev->common, &data->pressure, &data->t_fine, press_adc) != 0){
-        DEBUG("[bme680] error calculating pressure\n");
-        return -ERANGE;
-    }
-
-    if (calc_hum(&dev->common, &data->humidity, &data->temperature, hum_adc) != 0){
-        DEBUG("[bme680] error calculating humidity\n");
-        return -ERANGE;
-    }
-
-    /* evaluate gas data if required */
     if (dev->common.params.meas_gas){
-
         xtimer_msleep(dev->common.params.gas_heating_time);
 
         bme680_adc_readout_gas_t adc_readout_gas;
@@ -297,18 +289,17 @@ int bme680_i2c_read(const bme680_i2c_t *dev, bme680_data_t *data)
         /* check if gas measurement was successful */
         if ((adc_readout_gas.gas_adc_lsb & BME680_GAS_MEASUREMENT_SUCCESS) != BME680_GAS_MEASUREMENT_SUCCESS){
             DEBUG("[bme680] gas measurement not successful\n");
-            data->gas_status = 0;
+            raw_adc_values.gas_status = 0;
         }
-        /* calculate gas */
         else{
-            uint8_t gas_range = adc_readout_gas.gas_adc_lsb & BME680_GAS_RANGE_MASK;
-            uint16_t gas_adc = (uint16_t) (uint16_t) (adc_readout_gas.gas_adc_msb << 2)
-                |  ((uint16_t) adc_readout_gas.gas_adc_lsb >> 6);
-
-            calc_gas(&dev->common, &data->gas_resistance, gas_range, gas_adc);
-            data->gas_status = 1;
+            raw_adc_values.gas_range = adc_readout_gas.gas_adc_lsb & BME680_GAS_RANGE_MASK;
+            raw_adc_values.gas_adc = ((uint16_t) adc_readout_gas.gas_adc_msb << 2)
+                                |  ((uint16_t) adc_readout_gas.gas_adc_lsb >> 6);
+            raw_adc_values.gas_status = 1;
         }
     }
+
+    bme680_common_convert(&dev->common, dest, &raw_adc_values);
 
     return 0;
 }

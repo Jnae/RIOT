@@ -21,6 +21,7 @@
  */
 
 #include "kernel_defines.h"
+#include <stdio.h>
 
 /**
  * @brief   Initializes sensors and actuators for SAUL

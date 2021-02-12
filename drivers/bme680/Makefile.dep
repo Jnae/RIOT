@@ -1,3 +1,9 @@
+USEPKG += driver_bme680
+
+ifneq (,$(filter saul%,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
+
 ifneq (,$(filter bme680_i2c,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
 endif
@@ -6,5 +12,3 @@ ifneq (,$(filter bme680_spi,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
 endif
-
-USEMODULE += xtimer

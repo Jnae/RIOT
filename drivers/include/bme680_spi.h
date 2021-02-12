@@ -91,7 +91,7 @@ int bme680_spi_init(bme680_spi_t *dev, const bme680_spi_params_t *params);
  * @return -EIO             Error in reading/writing data
  * @return -ERANGE          Error in calculating result data
  */
-int bme680_spi_read(const bme680_spi_t *dev, bme680_data_t *data);
+int bme680_spi_read(const bme680_spi_t *dev, bme680_data_t *dest);
 
 #ifdef __cplusplus
 }

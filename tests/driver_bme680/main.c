@@ -55,9 +55,9 @@ int main(void)
     mutex_t timer_mtx = MUTEX_INIT_LOCKED;
 
 #if IS_USED(MODULE_BME680_I2C)
-    bme680_i2c_t dev_i2c[BME680_I2C_NUMOF];
+    bme680_i2c_t dev_i2c[BME680_COMMON_NUMOF];
 
-    for (unsigned i = 0; i < BME680_I2C_NUMOF; i++) {
+    for (unsigned i = 0; i < BME680_COMMON_NUMOF; i++) {
         /*
          * We use a fix temperature here. The ambient temperature could be
          * determined by performing a few temperature readings without
@@ -84,7 +84,7 @@ int main(void)
     {
         bme680_data_t data;
 
-        for (unsigned i = 0; i < BME680_I2C_NUMOF; i++) {
+        for (unsigned i = 0; i < BME680_COMMON_NUMOF; i++) {
 
             int res = bme680_i2c_read(&dev_i2c[i], &data);
 
@@ -97,7 +97,7 @@ int main(void)
                        data.pressure,
                        data.humidity / 1000, data.humidity % 1000);
                 /* Avoid using measurements from an unstable heating setup */
-                if (data.gas_status == 1) {
+                if (data.flags & (1 << BME680_FLAG_HAS_GAS_VALUE)) {
                     printf(", G = %" PRIu32 " ohms", data.gas_resistance);
                 }
                 printf("\n");
@@ -113,9 +113,9 @@ int main(void)
 #endif
 
 #if IS_USED(MODULE_BME680_SPI)
-    bme680_spi_t dev_spi[BME680_SPI_NUMOF];
+    bme680_spi_t dev_spi[BME680_COMMON_NUMOF];
 
-    for (unsigned i = 0; i < BME680_SPI_NUMOF; i++) {
+    for (unsigned i = 0; i < BME680_COMMON_NUMOF; i++) {
         /*
          * We use a fix temperature here. The ambient temperature could be
          * determined by performing a few temperature readings without
@@ -142,7 +142,7 @@ int main(void)
     {
         bme680_data_t data;
 
-        for (unsigned i = 0; i < BME680_SPI_NUMOF; i++) {
+        for (unsigned i = 0; i < BME680_COMMON_NUMOF; i++) {
 
             int res = bme680_spi_read(&dev_spi[i], &data);
 
@@ -155,7 +155,7 @@ int main(void)
                        data.pressure,
                        data.humidity / 1000, data.humidity % 1000);
                 /* Avoid using measurements from an unstable heating setup */
-                if (data.gas_status == 1) {
+                if (data.flags & (1 << BME680_FLAG_HAS_GAS_VALUE)) {
                     printf(", G = %" PRIu32 " ohms", data.gas_resistance);
                 }
                 printf("\n");

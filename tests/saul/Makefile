@@ -4,5 +4,5 @@ include ../Makefile.tests_common
 USEMODULE += saul_default
 
 USEMODULE += xtimer
-
+USEMODULE += bme680_i2c
 include $(RIOTBASE)/Makefile.include

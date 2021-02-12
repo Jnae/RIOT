@@ -79,42 +79,57 @@ typedef struct {
     uint8_t range_sw_error;
 } bme680_calib_t;
 
+typedef struct {
+    uint32_t temp_adc;
+    uint32_t press_adc;
+    uint16_t hum_adc;
+    uint8_t gas_status;
+    uint8_t gas_range;
+    uint16_t gas_adc;
+} bme680_raw_t;
+
 /**
  * @brief   Oversampling modes for temperature, pressure, humidity
  */
 enum {
-    OVERSAMPLING_1 = 0b001,
-    OVERSAMPLING_2 = 0b010,
-    OVERSAMPLING_4 = 0b011,
-    OVERSAMPLING_8 = 0b100,
-    OVERSAMPLING_16 = 0b101
+    BME680_OVERSAMPLING_1 = 0b001,
+    BME680_OVERSAMPLING_2 = 0b010,
+    BME680_OVERSAMPLING_4 = 0b011,
+    BME680_OVERSAMPLING_8 = 0b100,
+    BME680_OVERSAMPLING_16 = 0b101
 };
 
 /**
  * @brief   Filter coefficients
  */
 enum {
-    FILTER_COEFFICIENT_0 = 0b000,
-    FILTER_COEFFICIENT_1 = 0b001,
-    FILTER_COEFFICIENT_3 = 0b010,
-    FILTER_COEFFICIENT_7 = 0b011,
-    FILTER_COEFFICIENT_15 = 0b100,
-    FILTER_COEFFICIENT_31 = 0b101,
-    FILTER_COEFFICIENT_63 = 0b110,
-    FILTER_COEFFICIENT_127 = 0b111
+    BME680_FILTER_COEFFICIENT_0 = 0b000,
+    BME680_FILTER_COEFFICIENT_1 = 0b001,
+    BME680_FILTER_COEFFICIENT_3 = 0b010,
+    BME680_FILTER_COEFFICIENT_7 = 0b011,
+    BME680_FILTER_COEFFICIENT_15 = 0b100,
+    BME680_FILTER_COEFFICIENT_31 = 0b101,
+    BME680_FILTER_COEFFICIENT_63 = 0b110,
+    BME680_FILTER_COEFFICIENT_127 = 0b111
 };
 
 /**
  * @brief   Result data
  */
 typedef struct {
-    uint32_t temperature;           /**< temperature in degree Celsius x 100 */
+    int32_t temperature;            /**< temperature in degree Celsius x 100 */
     uint32_t humidity;              /**< humidity in % */
     uint32_t pressure;              /**< pressure in Pascal */
     uint32_t gas_resistance;        /**< gas resistance in Ohm */
-    uint32_t t_fine;                /**< temperature value used for pressure calculation */
-    uint8_t gas_status;             /**< gas status indicating success (1) or error (0) */
+    uint8_t flags;                  /**< Flags e.g. indicating presence of gas resistance value */
 } bme680_data_t;
+
+/**
+ * @brief Flags for use in @ref bme680_data_t::flags
+ */
+enum {
+    BME680_FLAG_HAS_GAS_VALUE,      /**< Value for gas resistance is valid */
+};
 
 /**
  * @brief   Device descriptor for the driver
@@ -129,76 +144,32 @@ typedef struct {
 /**
  * @brief   Converts heating temperature to register value
  *
- * @param[inout] dev        Initialized device descriptor of BME680 device
- * @param[out]   res        resulting regiser value
+ * @param[inout] dev                Initialized device descriptor of BME680 device
  *
- * @return                  0 on success
- * @return -EIO             Error in reading/writing data
+ * @return                          resulting register value
  */
-int convert_res_heat(const bme680_common_t *dev, uint8_t *res);
-/**
- * @brief   Calculation of temperature value
- *
- * @param[inout] dev        Initialized device descriptor of BME680 device
- * @param[out]   res        calculated temperature value in percent
- * @param[inout] t_fine     calculated temperature parameter
- * @param[in]    temp_adc   Register value of temperature measurement
- *
- * @return                  0 on success
- * @return -EIO             Error in reading/writing data
- * @return -ERANGE          Error in calculating result data
- */
-int calc_temp(const bme680_common_t *dev, uint32_t *res, uint32_t *t_fine, uint32_t temp_adc);
+uint8_t bme680_common_convert_res_heat(const bme680_common_t *dev);
+
 
 /**
- * @brief   Calculation of humidity value
+ * @brief   Converts adc values to @ref bme680_data_t result
  *
- * @param[inout] dev        Initialized device descriptor of BME680 device
- * @param[out]   res        calculated humidity value in percent
- * @param[inout] temp_com   compensated temperature value
- * @param[in]    hum_adc    Register value of humidity measurement
+ * @param[inout] dev                Initialized device descriptor of BME680 device
+ * @param[inout] dest               resulting data
+ * @param[inout] raw_adc_values     raw adc values read from device
  *
- * @return                  0 on success
- * @return -EIO             Error in reading/writing data
- * @return -ERANGE          Error in calculating result data
+ * @return                          0 on success
+ * @return -EIO                     Error in reading/writing data
  */
-int calc_hum(const bme680_common_t *dev, uint32_t *res, const uint32_t *temp_comp, const uint16_t hum_adc);
-
-/**
- * @brief   Calculation of pressure value
- *
- * @param[inout] dev        Initialized device descriptor of BME680 device
- * @param[out]   res        calculated pressure value in Pascal
- * @param[inout] t_fine     calculated temperature parameter
- * @param[in]    press_adc  Register value of pressure measurement
- *
- * @return                  0 on success
- * @return -EIO             Error in reading/writing data
- * @return -ERANGE          Error in calculating result data
- */
-int calc_press(const bme680_common_t *dev, uint32_t *res, uint32_t *t_fine, const uint32_t press_adc);
-
-/**
- * @brief   Calculation of gas value
- *
- * @param[inout] dev        Initialized device descriptor of BME680 device
- * @param[out]   res        calculated gas value in Ohm
- * @param[in]    gas_range  Register value of gas range
- * @param[in]    gas_adc    Register value of gas measurement
- *
- * @return                  0 on success
- * @return -EIO             Error in reading/writing data
- * @return -ERANGE          Error in calculating result data
- */
-void calc_gas(const bme680_common_t *dev, uint32_t *res, uint8_t gas_range, uint16_t gas_adc);
+void bme680_common_convert(const bme680_common_t *dev, bme680_data_t *dest, const bme680_raw_t *raw_adc_values);
 
 /**
  * @brief   Calculation of heating duration register value
  *
- * @param[inout] dur        Target heating duration
- * @param[out]   res        register value of heating duration
+ * @param[inout] dur                Target heating duration
+ * @return                          register value of heating duration
  */
-void calc_heater_dur(const uint16_t dur, uint8_t *res);
+uint8_t bme680_common_calc_heater_dur(uint16_t dur);
 
 #ifdef __cplusplus
 }
